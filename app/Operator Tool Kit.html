@@ -922,6 +922,18 @@
     body.print-ts #ts-sheet .ts-on, body.print-ts #ts-sheet .ts-off td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
+<!-- install as app -->
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta name="theme-color" content="#2876d4">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tool Kit">
+<script>
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  addEventListener('load', () => navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {}));
+}
+</script>
 </head>
 <body>
 <aside class="wrail" id="wellRail" aria-label="Wells"></aside>
