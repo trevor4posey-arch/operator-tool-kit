@@ -1,0 +1,16 @@
+{
+  "name": "Operator Tool Kit",
+  "short_name": "Tool Kit",
+  "description": "Drilling fluids, BHA, treatment sheets, and mud cost per foot in one tool kit.",
+  "id": "./",
+  "start_url": "./app/Operator%20Tool%20Kit.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f4f7",
+  "theme_color": "#2876d4",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
