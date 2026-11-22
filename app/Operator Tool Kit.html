@@ -12637,9 +12637,9 @@ const CFG = window.OTK_CONFIG || null;
 const PLANS = {
   standard: { name: 'Standard', price: 49, seats: 1, vendorSeats: 0, blurb: 'One person and the everyday mud and well tools.', groups: ['well', 'mud', 'wct', 'cc'],
     features: ['Mud calculator, mud properties, hydraulics, solids and treatment', 'Well control, trip sheet, surge and swab', 'Casing run and cementing', 'Set up for your role: your tools first, your home page', 'Imports and the daily report', 'Works with no signal on phones and computers'] },
-  pro: { name: 'Pro', price: 149, seats: 5, vendorSeats: 10, pop: true, blurb: 'The whole well, the vendors and a small team.', groups: ['well', 'mud', 'wct', 'cc', 'drl', 'plan', 'vend', 'geol'],
+  pro: { name: 'Pro', price: 199, seats: 5, vendorSeats: 10, pop: true, blurb: 'The whole well, the vendors and a small team.', groups: ['well', 'mud', 'wct', 'cc', 'drl', 'plan', 'vend', 'geol'],
     features: ['Everything in Standard', 'Directional, 3D well, torque and drag, anti-collision, buckling', 'Planner: stages and checklist, days vs depth, cost and AFE, morning report', 'Vendors: profiles, orders, tickets, schedule and trucks, vendor reports', 'Geology and mud logging', 'Up to 5 people sharing the wells, vendors, orders and tickets', 'Up to 10 vendor people with Full, General or Limited access', 'Ticket photos read on the server'] },
-  enterprise: { name: 'Enterprise', price: 399, seats: 25, vendorSeats: 100, blurb: 'Several rigs, a bigger team, and vendors answering from a link.', groups: ['*'],
+  enterprise: { name: 'Enterprise', price: 1499, seats: 25, vendorSeats: 100, blurb: 'Several rigs, a bigger team, and vendors answering from a link.', groups: ['*'],
     features: ['Everything in Pro', 'Superintendent view across rigs', 'Up to 25 people (more on request)', 'Up to 100 vendor people', 'Vendors confirm and update orders from a link, no app needed', 'Alerts to vendors by text and email from the server', 'Priority support'] } };
 const PLAN_ORDER = ['standard', 'pro', 'enterprise'], TOOL_PLAN = { sup: 'enterprise', ddr: 'pro' };   // the morning report sits with the well's reports but stays a Pro tool
 const planPrice = k => (CFG && CFG.prices && CFG.prices[k]) || PLANS[k].price;
@@ -12797,7 +12797,7 @@ function acctPlanCards(host, onPick) {
   const g = el('div', { class: 'ac-plans' }), p = ACCT.plan();
   for (const k of PLAN_ORDER) {
     const P = PLANS[k], c = el('div', { class: 'ac-plan' + (P.pop ? ' pop' : '') + (p === k ? ' cur' : '') });
-    c.appendChild(el('h3', {}, P.name)); const pr = el('div', { class: 'ac-price' }, '$' + planPrice(k)); pr.appendChild(el('small', {}, ' a month')); c.appendChild(pr);
+    c.appendChild(el('h3', {}, P.name)); const pr = el('div', { class: 'ac-price' }, '$' + planPrice(k).toLocaleString('en-US')); pr.appendChild(el('small', {}, ' a month')); c.appendChild(pr);
     c.appendChild(el('div', { class: 'vx-sub' }, P.blurb + ' ' + (P.seats === 1 ? 'One person.' : 'Up to ' + P.seats + ' people.')));
     const ul = el('ul'); for (const f of P.features) ul.appendChild(el('li', {}, f)); c.appendChild(ul);
     if (onPick) c.appendChild(btnEl(p === k ? 'Your plan' : p && PLAN_ORDER.indexOf(p) > PLAN_ORDER.indexOf(k) ? 'Move to ' + P.name : 'Choose ' + P.name, p === k ? '' : 'primary', p === k ? null : () => onPick(k)));
