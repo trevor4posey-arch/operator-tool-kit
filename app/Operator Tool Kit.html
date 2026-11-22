@@ -1535,7 +1535,7 @@
    Reads: mud reports (MUDPRO-style Excel exports, PDF, CSV), directional surveys and well plans (Excel, PDF, CSV, LAS),
    BHA reports (Excel, PDF), LAS logs, and drilling-fluids or well programs (PDF, Excel): formation tops, casing points,
    hole sections, mud-weight windows and planned days. Photos, scans and layouts these readers don't know are read by
-   Claude when the page runs as a published web page.
+   the smart reader when the page runs as a published web page.
    Usage (in a page):  MudImport.mount(document.getElementById('importBar'), {
      apply(check, well, data) { return [[inputId, value], ...]; },   // what to fill for this page
      setInput(id, value), getInput(id)                                // write / read one input (and its saved value)
@@ -1805,7 +1805,7 @@
   // Text pulled out of an old Word (.doc) or another binary file: runs of readable characters
   const binText = buf => { const u = new Uint8Array(buf), out = []; let cur = ''; for (let i = 0; i < u.length; i++) { const c = u[i]; if ((c >= 32 && c < 127) || c === 9) cur += String.fromCharCode(c); else { if (cur.length >= 4) out.push(cur); cur = ''; if (c === 13 || c === 10) out.push('\n'); } } if (cur.length >= 4) out.push(cur); return out.join(' ').replace(/ ?\n ?/g, '\n'); };
   const extOf = n => (String(n || '').toLowerCase().match(/\.([a-z0-9]+)$/) || [])[1] || '';
-  // Any file to what the readers can use: rows of cells, a picture for Claude, a log, surveys, a 3D model, or the files inside it
+  // Any file to what the readers can use: rows of cells, a picture for the smart reader, a log, surveys, a 3D model, or the files inside it
   async function readAny(f, step) {
     const e = extOf(f.name), t = f.type || '', out = { how: '', rows: null, image: null, files: null, log: null, stations: null, isPlan: false, model: null, json: null, subject: '' };
     if (/^(xlsx|xlsm|xltx)$/.test(e)) { out.rows = await xlsxRows(await f.arrayBuffer()); out.how = 'Excel'; }
@@ -2733,7 +2733,7 @@
     return w;
   }
 
-  /* ---------- Claude (published page only) ---------- */
+  /* ---------- Smart reader (published page only) ---------- */
   const FIELDS = 'mw (ppg), fv (sec/qt), r600, r300, r200, r100, r6, r3 (Fann dial readings), pv (cP), yp (lbf/100ft2), gel10s, gel10m, gel30m (lbf/100ft2), api (ml/30 min), hthp (ml/30 min), hthpTemp (F), solids, oil, water, sand (% by volume), mbt (lb/bbl), ph, pm, pf, mf (ml), calcium, chlorides (mg/L, filtrate), hardness (mg/L), excessLime (lb/bbl), clWholeMud (mg/L, oil-based whole mud), pom (cc), owr (oil part, e.g. 80 for 80/20), wps (ppm), es (volts), brineSg, time (hh:mm)';
   const WELLFIELDS = 'md (ft), tvd (ft), inc (deg), azi (deg), rop (ft/hr), flowGpm (total pump rate), sppPsi (pump pressure), liner (in), stroke (in), efficiency (%), spm1, spm2, spm3, bps (pump output, bbl/stk), bitSize (in), ohSize (open hole in), tfa (in2), dpOd (in), dpId (in), dpLength (ft), csgOd, csgId (last casing set, in), shoeMd (its shoe, ft), wob, puWt, soWt, rotWt (klb), rpm, holeVol, annVol, pitVol, totalVol (bbl), bhEcd (ppg), lgs, hgs (%), cumCost, dailyCost (mud cost $), mudType ("WBM" or "OBM"), activity, well, operator, rig, engineer (text), reportNo, reportDate, spud (YYYY-MM-DD)';
   function aiPrompt(rows) {
@@ -2789,11 +2789,11 @@
     out.notes = typeof d.notes === 'string' ? d.notes.slice(0, 300) : '';
     return out;
   }
-  /* How long Claude usually takes on this device (seconds to first text, characters per second, answer length), learned from past reads */
-  const STATS_KEY = 'mudkit:ai', STATS0 = { think: 20, thinkImg: 28, rate: 90, chars: 1300 };
+  /* How long the smart reader usually takes on this device (seconds to first text, characters per second, answer length), learned from past reads */
+  const STATS_KEY = 'mudkit:rd', STATS0 = { think: 20, thinkImg: 28, rate: 90, chars: 1300 };
   const stats = () => { try { return Object.assign({}, STATS0, JSON.parse(localStorage.getItem(STATS_KEY) || '{}')); } catch (e) { return Object.assign({}, STATS0); } };
   const learn = (k, v) => { if (!(v > 0) || !isFinite(v)) return; try { const s = stats(); s[k] = Math.round((s[k] + v) / 2 * 10) / 10; localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch (e) {} };
-  const AI_ERR = { not_granted: 'Claude isn’t allowed for this page, so only files the page reads itself can be imported.', rate_limited: 'Claude is busy or your usage limit is reached. Try again later.', image_rejected: 'That image couldn’t be read. Try a clearer photo.', invalid_json: 'Claude’s answer couldn’t be read. Try again.', refused: 'Claude couldn’t read that file.', session_expired: 'Sign in to Claude again, then retry.', prompt_too_large: 'That file is too long to send. Try a single-page export.' };
+  const RD_ERR = { not_granted: 'The smart reader isn’t allowed for this page, so only files the page reads itself can be imported.', rate_limited: 'The smart reader is busy or your usage limit is reached. Try again later.', image_rejected: 'That image couldn’t be read. Try a clearer photo.', invalid_json: 'The smart reader’s answer couldn’t be read. Try again.', refused: 'The smart reader couldn’t read that file.', session_expired: 'Sign in to the smart reader again, then retry.', prompt_too_large: 'That file is too long to send. Try a single-page export.' };
 
   /* ---------- UI ---------- */
   const CSS = '.mk-imp{display:flex;flex-direction:column;gap:8px}.mk-imp[hidden],.mk-imp [hidden]{display:none!important}.mk-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.mk-hint{font-size:12.5px;color:var(--ink2)}.mk-drop{outline:2px dashed var(--accent);outline-offset:4px;border-radius:8px}'
@@ -2864,7 +2864,7 @@
       window.claude.use('sample').then(async s => {
         sample = s; if (!s) return;
         try { const lim = await s.limits(); imagesOk = !!(lim && lim.images); } catch (e) { imagesOk = false; }
-        hint.textContent = HINT.replace('The right inputs fill themselves', imagesOk ? 'Photos of a check sheet work too: Claude reads anything the page can’t. The right inputs fill themselves' : 'Claude reads anything the page can’t. The right inputs fill themselves');
+        hint.textContent = HINT.replace('The right inputs fill themselves', imagesOk ? 'Photos of a check sheet work too: The smart reader reads anything the page can’t. The right inputs fill themselves' : 'The smart reader reads anything the page can’t. The right inputs fill themselves');
       }, () => {});
     }
     const say = (msg, err) => { status.textContent = msg; status.classList.toggle('err', !!err); };
@@ -2882,15 +2882,15 @@
     host.addEventListener('drop', e => { e.preventDefault(); host.classList.remove('mk-drop'); const fs = [...((e.dataTransfer && e.dataTransfer.files) || [])]; if (fs.length) enqueue(fs); });
     const keep = (fs, from) => { if (opts.keep) opts.keep(fs, from); return !!opts.keep; };
 
-    async function viaClaude(rows, image, size) {
-      if (!sample) throw new Error('Reading this kind of file needs Claude, which is only available on the published web page.');
-      if (image && !imagesOk) throw new Error('Photos can’t be sent to Claude here. Export the file as PDF or Excel instead.');
+    async function viaReader(rows, image, size) {
+      if (!sample) throw new Error('Reading this kind of file needs the smart reader, which is only available on the published web page.');
+      if (image && !imagesOk) throw new Error('Photos can’t be sent to the smart reader here. Export the file as PDF or Excel instead.');
       ctl = new AbortController();
       const stop = make('button', 'mk-link', 'Stop'); stop.type = 'button'; stop.onclick = () => ctl && ctl.abort(); status.append(' ', stop);
-      // Time left: Claude thinks silently first (no progress events), then writes the JSON, which streams in
+      // Time left: The smart reader thinks silently first (no progress events), then writes the JSON, which streams in
       const st = stats(), think = image ? st.thinkImg : st.think, t0 = performance.now();
       let want = Math.max(st.chars, size || 0), firstAt = 0, chars = 0;
-      prog.start(asked ? 'Claude is reading the file…' : 'Claude is reading the file (allow it if asked)…', e => {
+      prog.start(asked ? 'The smart reader is reading the file…' : 'The smart reader is reading the file (allow it if asked)…', e => {
         if (!firstAt) return e < think ? think - e + want / st.rate : think - e - 3;
         const w = (performance.now() - firstAt) / 1000, rate = w > 1.5 && chars > 80 ? chars / w : st.rate;
         if (chars > want * 0.9) want = chars * 1.12;
@@ -2899,13 +2899,13 @@
       asked = true;
       try {
         const d = await sample.json(aiPrompt(rows), { modelTier: 'default', images: image ? [image] : undefined, signal: ctl.signal,
-          onText: ({ text }) => { if (!firstAt) { firstAt = performance.now(); prog.label('Claude is writing down the values…'); } chars = text.length; } });
+          onText: ({ text }) => { if (!firstAt) { firstAt = performance.now(); prog.label('The smart reader is writing down the values…'); } chars = text.length; } });
         const thinkS = firstAt ? (firstAt - t0) / 1000 : 0, w = firstAt ? (performance.now() - firstAt) / 1000 : 0;
         if (thinkS > 2) { learn(image ? 'thinkImg' : 'think', Math.min(thinkS, think * 2)); learn('chars', chars); if (w > 1.5) learn('rate', chars / w); }   // a replayed (cached) answer teaches nothing
         return cleanAi(d);
       } catch (e) {
         if (e && e.code === 'cancelled') throw Object.assign(new Error('Stopped. Nothing was changed.'), { quiet: true });
-        throw new Error((e && AI_ERR[e.code]) || 'Claude couldn’t read the file this time. Try again.');
+        throw new Error((e && RD_ERR[e.code]) || 'The smart reader couldn’t read the file this time. Try again.');
       } finally { ctl = null; stop.remove(); }
     }
 
@@ -2918,7 +2918,7 @@
         const isText = /\.(csv|txt|tsv|dat|asc|prn|las)$/.test(name) || (/^text\/(plain|csv)/.test(type) && !/\.(html?|xml|eml|rtf|obj)$/.test(name));
         let rows = null, image = null, data = null, how = '', log = null, aGeo = null;
         const open = isPdf ? (window.pdfjsLib ? 0.8 : window.MK_PDFJS ? 1.5 : 3.5) : isXlsx ? 0.4 + f.size / 2e6 : 0.3 + f.size / 4e6;
-        if (isImg && !(sample && imagesOk)) { if (keep([f], '')) { say('Kept ' + f.name + ' with the well’s documents. Reading photos needs Claude, on the published web page.'); return; } throw new Error('Photos can only be read by Claude, on the published web page.'); }
+        if (isImg && !(sample && imagesOk)) { if (keep([f], '')) { say('Kept ' + f.name + ' with the well’s documents. Reading photos needs the smart reader, on the published web page.'); return; } throw new Error('Photos can only be read by the smart reader, on the published web page.'); }
         if (!isImg) prog.start(isPdf && !window.pdfjsLib ? 'Starting the PDF reader' : 'Opening the file', e => open - e + 0.3);
         if (isXlsx) { rows = await xlsxRows(await f.arrayBuffer()); how = 'Excel'; }
         else if (isPdf) {
@@ -2927,7 +2927,7 @@
           rows = t.rows; how = 'PDF';
           if (t.chars < 150) {
             rows = null; how = 'scanned PDF';
-            if (!imagesOk) { prog.stop(); if (keep([f], '')) { say('Kept ' + f.name + ' with the well’s documents. It’s a scan with no text; Claude can read it on the published web page.'); return; } throw new Error('This PDF is a scan with no text. Open it on the published web page so Claude can read it, or use the Excel export.'); }
+            if (!imagesOk) { prog.stop(); if (keep([f], '')) { say('Kept ' + f.name + ' with the well’s documents. It’s a scan with no text; the smart reader can read it on the published web page.'); return; } throw new Error('This PDF is a scan with no text. Open it on the published web page so the smart reader can read it, or use the Excel export.'); }
             prog.step('Preparing the scanned page', e => 1.5 - e); image = await pdfPageImage(doc);
           }
         }
@@ -2961,8 +2961,8 @@
         const weak = !data || !data.kinds.length || (data.kinds.length === 1 && data.kinds[0] === 'mud' && data.found < 8);
         if (forceAi || (weak && !log && (sample || !data || !data.kinds.length))) {
           try {
-            const ai = await viaClaude(rows, image, rows ? Math.min(20000, rows.length * 40) : 1500); ai.source = how + ' (read by Claude)';
-            if (!forceAi && data && data.kinds.includes('mud')) { for (const k in ai.well) if (data.well[k] === null || data.well[k] === undefined) data.well[k] = ai.well[k]; data.source = how + ' (read directly + Claude)'; }
+            const ai = await viaReader(rows, image, rows ? Math.min(20000, rows.length * 40) : 1500); ai.source = how + ' (smart read)';
+            if (!forceAi && data && data.kinds.includes('mud')) { for (const k in ai.well) if (data.well[k] === null || data.well[k] === undefined) data.well[k] = ai.well[k]; data.source = how + ' (read directly + smart read)'; }
             else data = ai;
           } catch (e) { if ((!data || !data.kinds.length) && !g0) throw e; }   // keep what was read directly
         }
@@ -3002,9 +3002,9 @@
       }
       const ub = make('button', 'btn', 'Undo import'); ub.type = 'button'; ub.onclick = () => { restore(); result.hidden = true; say('Import undone. Your earlier values are back.'); };
       bar.append(ub);
-      if (sample && last.rows && last.rows.length && !/Claude/.test(data.source)) { const ab = make('button', 'mk-link', 'Read it with Claude instead'); ab.type = 'button'; ab.onclick = () => { restore(); handle(last.file, true); }; bar.append(ab); }
+      if (sample && last.rows && last.rows.length && !/smart read/.test(data.source)) { const ab = make('button', 'mk-link', 'Use the smart reader instead'); ab.type = 'button'; ab.onclick = () => { restore(); handle(last.file, true); }; bar.append(ab); }
       result.append(bar);
-      const notes = [data.pageNote || '', data.notes ? 'Claude’s note: ' + data.notes : ''].concat(data.reportNotes || [], data.bha && data.bha.notes ? data.bha.notes : []).filter(Boolean);
+      const notes = [data.pageNote || '', data.notes ? 'Note: ' + data.notes : ''].concat(data.reportNotes || [], data.bha && data.bha.notes ? data.bha.notes : []).filter(Boolean);
       for (const n of notes) result.append(make('div', 'mk-hint', n));
       if (data.kinds.includes('mud')) {
         const found = [];
@@ -5251,10 +5251,10 @@ function locFmPopup(name) {
     body.appendChild(links);
     if (window.claude && typeof window.claude.use === 'function') {
       const out = el('div', { class: 'vx-note', style: 'margin-top:8px;white-space:pre-wrap' }); body.appendChild(out);
-      foot.appendChild(btnEl('Ask Claude about it', '', async () => {
-        out.textContent = 'Asking…'; try { const s = await window.claude.use('sample'); if (!s) { out.textContent = 'Claude isn’t available on this copy.'; return; }
+      foot.appendChild(btnEl('Ask about it', '', async () => {
+        out.textContent = 'Asking…'; try { const s = await window.claude.use('sample'); if (!s) { out.textContent = 'The smart reader isn’t available on this copy.'; return; }
           const r = await s('You are helping a drilling team. In about 120 words, plainly, describe the ' + name + ' formation' + (county || state ? ' around ' + [county && county + ' County', state].filter(Boolean).join(', ') : '') + ': its rock, its age, what drillers meet in it (pressure, losses, hole stability, gas) and what the mud should do. Say when something varies by area. No headings.', { onText: ({ text }) => { out.textContent = text; } });
-          out.textContent = r && r.text ? r.text : out.textContent; } catch (e) { out.textContent = e && e.code === 'not_granted' ? 'Claude isn’t allowed for this page.' : 'Claude couldn’t answer this time.'; }
+          out.textContent = r && r.text ? r.text : out.textContent; } catch (e) { out.textContent = e && e.code === 'not_granted' ? 'The smart reader isn’t allowed for this page.' : 'The smart reader couldn’t answer this time.'; }
       }, 'msg'));
     }
     foot.appendChild(btnEl('Close', 'primary', close));
@@ -9865,7 +9865,7 @@ function readTicketTable(rows, ctx = {}) {
   }
   return null;
 }
-// Claude reads photos and scans on the published page (or on the team plan's server when signed in)
+// The smart reader reads photos and scans on the published page (or on the team plan's server when signed in)
 let VT_SAMPLE = null;
 const vtSample = () => VT_SAMPLE || (VT_SAMPLE = window.claude && typeof window.claude.use === 'function' ? window.claude.use('sample').then(async s => { if (!s) return null; let img = false; try { const l = await s.limits(); img = !!(l && l.images); } catch (e) {} return { s, img }; }, () => null) : Promise.resolve(null));
 const VT_PROMPT = rows => 'You are reading an oilfield vendor’s field ticket, delivery ticket or invoice for a drilling team. Return ONLY JSON shaped like {"vendor":"","ticketNo":"","date":"YYYY-MM-DD","total":0,"subtotal":null,"tax":null,"category":"","description":"","well":"","po":"","items":[{"desc":"","qty":null,"unit":"","rate":null,"amount":null}],"notes":""}.\n'
@@ -9900,7 +9900,7 @@ async function vtRead(f, ctx, step) {
   const base = { file: f, fileName: f.name, fileType: f.type || '', how: a.how, orderId: ctx.orderId || null, status: 'received', notes: '', include: true };
   if (a.rows && a.rows.length) { const tab = readTicketTable(a.rows, ctx); if (tab) return tab.map(t => Object.assign({}, base, { key: uid(), file: null, fromTable: true }, t)); }
   let d = a.rows && a.rows.length ? readTicket(a.rows, ctx) : null, how = a.how, note = '';
-  if (a.image || !d || d.total === null || !d.vendorName) { try { const ai = await vtAsk(a.rows, a.image); if (ai) { d = vtMerge(d, ai, ctx); how += ' + Claude'; } } catch (e) { note = 'Claude couldn’t read it this time.'; } }
+  if (a.image || !d || d.total === null || !d.vendorName) { try { const ai = await vtAsk(a.rows, a.image); if (ai) { d = vtMerge(d, ai, ctx); how += ' + smart read'; } } catch (e) { note = 'The smart reader couldn’t read it this time.'; } }
   if (!d) { const v = VX.vendor(ctx.vendorId); d = { vendorId: v ? v.id : null, vendorName: v ? v.name : '', no: '', date: vxDay(f.lastModified || Date.now()), total: null, items: [], category: (v && (v.roles || [])[0]) || 'other', desc: '' }; note = note || (a.image ? 'A photo: type in what the ticket says.' : 'Nothing could be read from it: fill in the ticket.'); }
   const thumb = a.image || (a.doc ? await MudImport.pdfPageImage(a.doc).catch(() => null) : null);
   return [Object.assign({ key: uid() }, base, d, { how, thumb, notes: note, textHead: a.rows ? a.rows.slice(0, 14).map(r => r.join('  ')).join('\n') : '' })];
@@ -9960,7 +9960,7 @@ function vtDraftCard(d, onChange) {
   if (d.dup) right.appendChild(el('div', { class: 'vx-pill bad', style: 'align-self:flex-start' }, 'Already filed: ' + (d.dup.no ? '#' + d.dup.no + ' ' : '') + (d.dup.date || '') + ', ' + usd(d.dup.total, 2)));
   if (d.notes) right.appendChild(el('div', { class: 'vx-hint' }, d.notes));
   vtForm(d, right);
-  if (d.aiNote) right.appendChild(el('div', { class: 'vx-hint' }, 'Claude’s note: ' + d.aiNote));
+  if (d.aiNote) right.appendChild(el('div', { class: 'vx-hint' }, 'Note: ' + d.aiNote));
   card.append(side, right); return card;
 }
 async function vtSaveDrafts(list, close) {
@@ -10074,7 +10074,7 @@ function updVtix() {
   LAST.tables['tbl-vtix'] = { head: ['Date', 'Vendor', 'Ticket', 'What', 'Status', 'Amount'], rows: tix.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 120).map(t => [t.date || '—', vtVendorName(t), t.no ? '#' + t.no : '—', t.desc || roleName(t.category), vtStatName(t.status), usd(t.total, 2)]) };
   notes('notes-vtix', 'Using it', [
     ['Import', 'reads almost any file: PDFs, photos of paper tickets, Excel (new or old), CSV, Word, OpenOffice, an email with tickets attached, or a zip of them. Each ticket gets its vendor, number, date, total and lines; check them before you save.'],
-    ['Photos and scans', 'are read by Claude on the published web page, or on the team plan’s server once it is set up. Elsewhere they are kept with their picture so you can type in the total.'],
+    ['Photos and scans', 'are read by the smart reader on the published web page, or on the team plan’s server once it is set up. Elsewhere they are kept with their picture so you can type in the total.'],
     ['Filing', 'puts each ticket under its vendor (a new vendor is added to the list when it isn’t there yet), this well, and the order it belongs to. Duplicates of a ticket already filed are left unticked.'],
     ['Approve, dispute or send', 'on each ticket. Cost & AFE counts every ticket on this well, dated the day of the ticket.']
   ]);
@@ -13688,7 +13688,7 @@ function vcHeadBtn() { const b = el('button', { type: 'button', class: 'vc-hbtn'
 // Turn off stops it on the device.
 const WX = { busy: false, timer: 0, vis: false, err: '', blocked: false };
 const wxOn = () => store.get('wx_on') !== 'off';   // on unless turned off on this device
-const wxNoNet = () => !!(window.claude && typeof window.claude.use === 'function');   // the claude.ai copy only reaches its own files
+const wxNoNet = () => !!(window.claude && typeof window.claude.use === 'function');   // the web copy only reaches its own files
 const WX_CODE = { 0: ['Clear', 'sun'], 1: ['Mostly clear', 'sun'], 2: ['Partly cloudy', 'part'], 3: ['Cloudy', 'cloud'], 45: ['Fog', 'fog'], 48: ['Freezing fog', 'fog'],
   51: ['Light drizzle', 'rain'], 53: ['Drizzle', 'rain'], 55: ['Heavy drizzle', 'rain'], 56: ['Freezing drizzle', 'ice'], 57: ['Freezing drizzle', 'ice'], 61: ['Light rain', 'rain'], 63: ['Rain', 'rain'], 65: ['Heavy rain', 'rain'],
   66: ['Freezing rain', 'ice'], 67: ['Freezing rain', 'ice'], 71: ['Light snow', 'snow'], 73: ['Snow', 'snow'], 75: ['Heavy snow', 'snow'], 77: ['Snow grains', 'snow'], 80: ['Showers', 'rain'], 81: ['Showers', 'rain'], 82: ['Heavy showers', 'rain'],
@@ -13912,7 +13912,7 @@ function wxNotes() {
     ['The position', 'comes from the drilling program first, then the newest mud report, then survey files, WITSML, LAS and other files, then the Location tab. Import any of them with Import file. A legal description (SEC 16-2N-5W) is turned into the middle of its section, or its quarter or footage spot, within about half a mile. Type a latitude and longitude on the left to use your own.'],
     ['It stays current', 'every half hour while the tool kit is open, and when you come back to it. The last forecast is kept for no signal. Alert me puts a notice on this phone or computer when a new warning or watch comes in while the tool kit is open.'],
     ['Wind', 'is at 10 m (33 ft); it blows harder up the mast. Set the limits to your company’s rules and the crane company’s, and go by what the crews see on location.'],
-    'Only the wellhead’s position, rounded to about half a mile, goes to Open-Meteo and the National Weather Service: no names, no well data. Turn off stops it on this device and clears the kept forecast. The claude.ai web copy can’t reach the weather services; the app and the desktop copy can.'
+    'Only the wellhead’s position, rounded to about half a mile, goes to Open-Meteo and the National Weather Service: no names, no well data. Turn off stops it on this device and clears the kept forecast. The web copy can’t reach the weather services; the app and the desktop copy can.'
   ]);
 }
 // The next 48 hours: wind and gusts against the limits, the chance of rain, thunderstorms, and the nights shaded
